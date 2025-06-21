@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CGPA Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h2 {
+      background: #007bff;
+      color: white;
+      padding: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    input {
+      width: 60px;
+    }
+
+    .total {
+      font-weight: bold;
+      background: #e9ecef;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    .result {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Semester GPA & CGPA Calculator</h2>
+  <button onclick="calculateAll()">Calculate CGPA</button>
+
+  <div id="tables-container"></div>
+
+  <div class="result" id="cgpa-result"></div>
+
+  <script>
+    const semesters = [
+      {
+        name: "SEM I",
+        parts: [
+          { part: 1, codes: ["FLT10"], credits: [4] },
+          { part: 2, codes: ["FLE10"], credits: [4] },
+          { part: 3, codes: ["FAMA15B", "FCA11", "FPCA13", "FPE10C"], credits: [3, 4, 2, 3] },
+          { part: 4, codes: ["FEC10"], credits: [2] }
+	]
+      },
+      {
+        name: "SEM II",
+        parts: [
+          { part: 1, codes: ["FLT20"], credits: [4] },
+          { part: 2, codes: ["FEE20", "FLE20"], credits: [2, 4] },
+          { part: 3, codes: ["FAMA25B", "FCA21", "FPCA23", "FPE2C"], credits: [5, 4, 2, 3] },
+          { part: 4, codes: ["FGA20", "FSS20"], credits: [2, 1] }
+        ]
+      },
+      {
+        name: "SEM III",
+        parts: [
+          { part: 1, codes: ["FLT30"], credits: [4] },
+          { part: 2, codes: ["FLE30"], credits: [4] },
+          { part: 3, codes: ["FACM15C", "FCA31", "FPCA34"], credits: [3, 4, 3] },
+          { part: 4, codes: ["FNBA34", "FCSS30"], credits: [2, 2] }
+        ]
+      },
+      {
+        name: "SEM IV",
+        parts: [
+          { part: 1, codes: ["FLT40"], credits: [4] },
+          { part: 2, codes: ["FLE40"], credits: [4] },
+          { part: 3, codes: ["FACM25C", "FCA41", "FPCA43"], credits: [5, 4, 3] },
+          { part: 4, codes: ["FNB144", "FNM40B"], credits: [2, 2] }
+        ]
+      },
+      {
+        name: "SEM V",
+        parts: [
+          { part: 3, codes: ["FA51", "FA52", "FA53", "FECA54C", "FPCA56", "FPCA57"], credits: [4, 4, 2, 3, 3, 3] },
+          { part: 4, codes: ["FNM50A"], credits: [2] }
+        ]
+      },
+      {
+        name: "SEM VI",
+        parts: [
+          { part: 3, codes: ["FCA61", "FCA62", "FECA63B", "FECA64C", "FPCA65", "FPCA66", "FPCA67"], credits: [4, 4, 3, 3, 2, 2, 5] },
+          { part: 4, codes: ["FNM60B"], credits: [2] },
+          { part: 5, codes: ["FEA60"], credits: [1] }
+        ]
+      }
+    ];
+
+    const container = document.getElementById("tables-container");
+
+    semesters.forEach((sem, semIndex) => {
+      const table = document.createElement("table");
+      let html = `<thead><tr><th colspan="6">${sem.name}</th></tr>`;
+      html += `<tr><th>PART</th><th>CODE</th><th>CREDITS</th><th>G.P</th><th>GPA</th></tr></thead><tbody>`;
+
+      sem.parts.forEach((part, partIndex) => {
+        part.codes.forEach((code, idx) => {
+          const gpaId = `gpa-${semIndex}-${partIndex}-${idx}`;
+          html += `<tr>
+            <td>${idx === 0 ? "Part " + part.part : ""}</td>
+            <td>${code}</td>
+            <td>${part.credits[idx]}</td>
+            <td><input type="number" id="gp-${semIndex}-${partIndex}-${idx}" min="0" max="10"/></td>
+            <td id="${gpaId}">${(idx === 0 && part.codes.length > 1) ? `<span id="part-gpa-${semIndex}-${partIndex}">-</span>` : "-"}</td>
+          </tr>`;
+        });
+      });
+
+      html += `<tr class="total"><td colspan="4">Total GPA (${sem.name})</td><td id="total-${semIndex}">-</td></tr>`;
+      html += `</tbody>`;
+      table.innerHTML = html;
+      container.appendChild(table);
+    });
+
+    function calculateAll() {
+      let totalGPA = 0;
+      let totalCreditsAll = 0;
+
+      semesters.forEach((sem, semIndex) => {
+        let semTotalGP = 0;
+        let semTotalCredits = 0;
+
+        sem.parts.forEach((part, partIndex) => {
+          let rawGP = 0;
+          let totalCredits = 0;
+          let gpValues = [];
+
+          part.codes.forEach((_, idx) => {
+            const gpInput = document.getElementById(`gp-${semIndex}-${partIndex}-${idx}`);
+            const gp = parseFloat(gpInput.value);
+            const credit = part.credits[idx];
+            if (!isNaN(gp)) {
+              gpValues.push(gp);
+              totalCredits += credit;
+
+              // Only assign direct GPA to single code parts
+              if (part.codes.length === 1) {
+                document.getElementById(`gpa-${semIndex}-${partIndex}-${idx}`).innerText = (gp * credit).toFixed(2);
+              }
+            }
+          });
+
+          let partGPA = 0;
+
+          if (part.codes.length > 1 && gpValues.length > 0) {
+            const avgGP = gpValues.reduce((a, b) => a + b, 0) / gpValues.length;
+            partGPA = avgGP * totalCredits;
+            const partGpaSpan = document.getElementById(`part-gpa-${semIndex}-${partIndex}`);
+            if (partGpaSpan) partGpaSpan.textContent = partGPA.toFixed(2);
+          } else {
+            partGPA = gpValues.length === 1 ? gpValues[0] * totalCredits : 0;
+          }
+
+          semTotalGP += partGPA;
+          semTotalCredits += totalCredits;
+        });
+
+        const semGPA = semTotalCredits > 0 ? semTotalGP / semTotalCredits : 0;
+        document.getElementById(`total-${semIndex}`).textContent = semGPA.toFixed(2);
+        totalGPA += semTotalGP;
+        totalCreditsAll += semTotalCredits;
+      });
+
+      const cgpa = totalCreditsAll > 0 ? totalGPA / totalCreditsAll : 0;
+      let classification = "";
+      if (cgpa >= 6) classification = "FIRST CLASS";
+      else if (cgpa >= 5.5) classification = "SECOND CLASS";
+
+      document.getElementById("cgpa-result").innerText = `OVERALL CGPA: ${cgpa.toFixed(2)} ${classification}`;
+    }
+  </script>
+</body>
+</html>
